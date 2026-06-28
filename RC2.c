@@ -148,3 +148,64 @@ void capturar_climaticos(Zona *z) {
     printf("  Humedad (%%)       : ");  scanf("%f", &z->humedad);
     limpiar_buffer();
 }
+float promedio_ponderado(float datos[], int n) {
+    float suma_pond = 0.0f, suma_pesos = 0.0f;
+    int i;
+    for (i = 0; i < n; i++) {
+        float peso = (float)(i + 1);
+        suma_pond  += datos[i] * peso;
+        suma_pesos += peso;
+    }
+    return (suma_pesos > 0.0f) ? (suma_pond / suma_pesos) : 0.0f;
+}
+
+void calcular_prediccion(Zona *z, Muestra *pred) {
+    int n = z->dias_registrados;
+    if (n == 0) {
+        *pred = z->actual;
+        return;
+    }
+    float co2v[MAX_DIAS], so2v[MAX_DIAS];
+    float no2v[MAX_DIAS], pm25v[MAX_DIAS];
+    int i;
+    for (i = 0; i < n; i++) {
+        co2v[i]  = z->historico[i].co2;
+        so2v[i]  = z->historico[i].so2;
+        no2v[i]  = z->historico[i].no2;
+        pm25v[i] = z->historico[i].pm25;
+    }
+
+    float f_viento  = 1.0f - (z->viento / 200.0f);
+    float f_humedad = 1.0f + (z->humedad / 500.0f);
+    if (f_viento  < 0.7f) f_viento  = 0.7f;
+    if (f_humedad > 1.3f) f_humedad = 1.3f;
+
+    pred->co2  = promedio_ponderado(co2v,  n) * f_viento;
+    pred->so2  = promedio_ponderado(so2v,  n) * f_viento;
+    pred->no2  = promedio_ponderado(no2v,  n) * f_viento;
+    pred->pm25 = promedio_ponderado(pm25v, n) * f_humedad;
+}
+
+void calcular_promedios(Zona *z, Muestra *prom) {
+    int n = z->dias_registrados;
+    if (n == 0) { *prom = z->actual; return; }
+    float sc = 0, ss = 0, sn = 0, sp = 0;
+    int i;
+    for (i = 0; i < n; i++) {
+        sc += z->historico[i].co2;
+        ss += z->historico[i].so2;
+        sn += z->historico[i].no2;
+        sp += z->historico[i].pm25;
+    }
+    prom->co2  = sc / n;
+    prom->so2  = ss / n;
+    prom->no2  = sn / n;
+    prom->pm25 = sp / n;
+}
+
+int supera_limite(Muestra *m) {
+    return (m->co2  > LIM_CO2  ||
+            m->so2  > LIM_SO2  ||
+            m->no2  > LIM_NO2  ||
+            m->pm25 > LIM_PM25);
+}
