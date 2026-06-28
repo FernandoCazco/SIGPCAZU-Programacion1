@@ -103,3 +103,48 @@ int main(void) {
 
     return 0;
 }
+void inicializar_zonas(Zona zonas[], int n) {
+    const char *nombres[MAX_ZONAS] = {
+        "Zona Norte", "Zona Sur", "Zona Centro",
+        "Zona Este",  "Zona Oeste"
+    };
+    int i;
+    for (i = 0; i < n; i++) {
+        strncpy(zonas[i].nombre, nombres[i], MAX_NOMBRE - 1);
+        zonas[i].dias_registrados = 0;
+        memset(&zonas[i].actual, 0, sizeof(Muestra));
+        memset(zonas[i].historico, 0, sizeof(zonas[i].historico));
+        zonas[i].temperatura = 20.0f;
+        zonas[i].viento      = 10.0f;
+        zonas[i].humedad     = 60.0f;
+    }
+}
+
+void capturar_datos_actuales(Zona *z) {
+    printf("  CO2  (ppm,  límite OMS %.0f): ", LIM_CO2);
+    scanf("%f", &z->actual.co2);
+    printf("  SO2  (µg/m³,límite OMS %.0f): ", LIM_SO2);
+    scanf("%f", &z->actual.so2);
+    printf("  NO2  (µg/m³,límite OMS %.0f): ", LIM_NO2);
+    scanf("%f", &z->actual.no2);
+    printf("  PM2.5(µg/m³,límite OMS %.0f): ", LIM_PM25);
+    scanf("%f", &z->actual.pm25);
+    limpiar_buffer();
+
+    if (z->dias_registrados < MAX_DIAS) {
+        z->historico[z->dias_registrados] = z->actual;
+        z->dias_registrados++;
+    } else {
+        int i;
+        for (i = 0; i < MAX_DIAS - 1; i++)
+            z->historico[i] = z->historico[i + 1];
+        z->historico[MAX_DIAS - 1] = z->actual;
+    }
+}
+
+void capturar_climaticos(Zona *z) {
+    printf("  Temperatura (°C)  : ");  scanf("%f", &z->temperatura);
+    printf("  Velocidad viento (km/h): "); scanf("%f", &z->viento);
+    printf("  Humedad (%%)       : ");  scanf("%f", &z->humedad);
+    limpiar_buffer();
+}
