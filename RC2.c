@@ -289,3 +289,61 @@ void mostrar_predicciones(Zona zonas[], int n) {
                pred.co2, pred.so2, pred.no2, pred.pm25);
     }
 }
+void guardar_historico(Zona zonas[], int n) {
+    FILE *f = fopen(ARCHIVO_DATOS, "wb");
+    if (!f) { perror("Error al guardar"); return; }
+    fwrite(zonas, sizeof(Zona), n, f);
+    fclose(f);
+}
+
+void cargar_historico(Zona zonas[], int n) {
+    FILE *f = fopen(ARCHIVO_DATOS, "rb");
+    if (!f) return;
+    fread(zonas, sizeof(Zona), n, f);
+    fclose(f);
+}
+
+void exportar_reporte(Zona zonas[], int n) {
+    FILE *f = fopen(ARCHIVO_REPORTE, "w");
+    if (!f) { perror("Error al exportar"); return; }
+
+    time_t t = time(NULL);
+    fprintf(f, "REPORTE DE CONTAMINACIÓN DEL AIRE\n");
+    fprintf(f, "Generado: %s\n", ctime(&t));
+    fprintf(f, "%-12s %8s %8s %8s %8s | %8s %8s %8s %8s\n",
+            "Zona", "CO2act", "SO2act", "NO2act", "PM25act",
+            "CO2pred", "SO2pred", "NO2pred", "PM25pred");
+    fprintf(f, "%s\n", "------------------------------------------------------------");
+
+    int i;
+    Muestra pred, prom;
+    for (i = 0; i < n; i++) {
+        calcular_prediccion(&zonas[i], &pred);
+        calcular_promedios(&zonas[i], &prom);
+        fprintf(f, "%-12s %8.1f %8.1f %8.1f %8.1f | %8.1f %8.1f %8.1f %8.1f\n",
+                zonas[i].nombre,
+                zonas[i].actual.co2, zonas[i].actual.so2,
+                zonas[i].actual.no2, zonas[i].actual.pm25,
+                pred.co2, pred.so2, pred.no2, pred.pm25);
+        fprintf(f, "  Prom 30 días: CO2=%.1f SO2=%.1f NO2=%.1f PM2.5=%.1f\n",
+                prom.co2, prom.so2, prom.no2, prom.pm25);
+        fprintf(f, "  Clima: Temp=%.1f°C  Viento=%.1fkm/h  Humedad=%.1f%%\n\n",
+                zonas[i].temperatura, zonas[i].viento, zonas[i].humedad);
+    }
+    fclose(f);
+}
+
+void mostrar_menu(void) {
+    printf("\n--- MENÚ PRINCIPAL ---\n");
+    printf(" 1. Ingresar datos de contaminación\n");
+    printf(" 2. Ver estado actual de zonas\n");
+    printf(" 3. Ver predicciones 24 horas\n");
+    printf(" 4. Verificar alertas preventivas\n");
+    printf(" 5. Exportar reporte\n");
+    printf(" 0. Salir\n");
+}
+
+void limpiar_buffer(void) {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
