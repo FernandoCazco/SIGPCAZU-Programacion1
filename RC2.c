@@ -209,3 +209,83 @@ int supera_limite(Muestra *m) {
             m->no2  > LIM_NO2  ||
             m->pm25 > LIM_PM25);
 }
+void emitir_alertas(Zona zonas[], int n) {
+    int i, alerta = 0;
+    Muestra pred;
+    printf("\n============= ALERTAS PREVENTIVAS =============\n");
+    for (i = 0; i < n; i++) {
+        calcular_prediccion(&zonas[i], &pred);
+        if (supera_limite(&zonas[i].actual) || supera_limite(&pred)) {
+            printf("\n⚠ ALERTA – %s\n", zonas[i].nombre);
+            if (zonas[i].actual.co2  > LIM_CO2)
+                printf("  CO2 actual %.1f supera límite OMS (%.0f ppm)\n",
+                       zonas[i].actual.co2, LIM_CO2);
+            if (zonas[i].actual.so2  > LIM_SO2)
+                printf("  SO2 actual %.1f supera límite OMS (%.0f µg/m³)\n",
+                       zonas[i].actual.so2, LIM_SO2);
+            if (zonas[i].actual.no2  > LIM_NO2)
+                printf("  NO2 actual %.1f supera límite OMS (%.0f µg/m³)\n",
+                       zonas[i].actual.no2, LIM_NO2);
+            if (zonas[i].actual.pm25 > LIM_PM25)
+                printf("  PM2.5 actual %.1f supera límite OMS (%.0f µg/m³)\n",
+                       zonas[i].actual.pm25, LIM_PM25);
+            if (supera_limite(&pred))
+                printf("  PREDICCIÓN 24h: niveles seguirán siendo elevados.\n");
+            mostrar_recomendaciones(&zonas[i], &pred);
+            alerta = 1;
+        }
+    }
+    if (!alerta)
+        printf("  Sin alertas activas. Todos los niveles dentro de los límites.\n");
+    printf("===============================================\n");
+}
+
+void mostrar_recomendaciones(Zona *z, Muestra *pred) {
+    printf("  Recomendaciones:\n");
+    if (pred->co2 > LIM_CO2)
+        printf("    - Restringir circulación vehicular en %s.\n", z->nombre);
+    if (pred->so2 > LIM_SO2)
+        printf("    - Reducir operaciones industriales temporalmente.\n");
+    if (pred->no2 > LIM_NO2)
+        printf("    - Promover uso de transporte público y bicicletas.\n");
+    if (pred->pm25 > LIM_PM25)
+        printf("    - Suspender actividades al aire libre y usar mascarillas.\n");
+    if (z->viento < 5.0f)
+        printf("    - Viento bajo: menor dispersión de contaminantes.\n");
+    if (z->humedad > 80.0f)
+        printf("    - Alta humedad: mayor concentración de PM2.5 posible.\n");
+}
+
+void mostrar_estado_actual(Zona zonas[], int n) {
+    int i;
+    Muestra prom;
+    printf("\n======= ESTADO ACTUAL DE CONTAMINACIÓN =======\n");
+    printf("%-12s %8s %8s %8s %8s\n", "Zona", "CO2", "SO2", "NO2", "PM2.5");
+    printf("%-12s %8s %8s %8s %8s\n", "----", "---", "---", "---", "-----");
+    for (i = 0; i < n; i++) {
+        calcular_promedios(&zonas[i], &prom);
+        printf("%-12s %7.1f%c %7.1f%c %7.1f%c %7.1f%c\n",
+               zonas[i].nombre,
+               zonas[i].actual.co2,  zonas[i].actual.co2  > LIM_CO2  ? '!' : ' ',
+               zonas[i].actual.so2,  zonas[i].actual.so2  > LIM_SO2  ? '!' : ' ',
+               zonas[i].actual.no2,  zonas[i].actual.no2  > LIM_NO2  ? '!' : ' ',
+               zonas[i].actual.pm25, zonas[i].actual.pm25 > LIM_PM25 ? '!' : ' ');
+    }
+    printf("\nLímites OMS: CO2=%.0f ppm | SO2=%.0f | NO2=%.0f | PM2.5=%.0f µg/m³\n",
+           LIM_CO2, LIM_SO2, LIM_NO2, LIM_PM25);
+    printf("'!' = supera límite\n");
+}
+
+void mostrar_predicciones(Zona zonas[], int n) {
+    int i;
+    Muestra pred;
+    printf("\n======= PREDICCIÓN PRÓXIMAS 24 HORAS =======\n");
+    printf("%-12s %8s %8s %8s %8s\n", "Zona", "CO2", "SO2", "NO2", "PM2.5");
+    printf("%-12s %8s %8s %8s %8s\n", "----", "---", "---", "---", "-----");
+    for (i = 0; i < n; i++) {
+        calcular_prediccion(&zonas[i], &pred);
+        printf("%-12s %7.1f  %7.1f  %7.1f  %7.1f\n",
+               zonas[i].nombre,
+               pred.co2, pred.so2, pred.no2, pred.pm25);
+    }
+}
